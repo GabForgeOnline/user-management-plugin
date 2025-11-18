@@ -58,3 +58,4 @@ docker-volumes/
 *.log
 .cache/
 tmp/
+*.md
