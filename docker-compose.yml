@@ -1,0 +1,79 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: user_management_db
+    environment:
+      POSTGRES_USER: gabforge
+      POSTGRES_PASSWORD: secure_password_123
+      POSTGRES_DB: gabforge
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U gabforge" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - user_management_net
+
+  # User Management Plugin
+  user_management:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: user_management_api
+    environment:
+      DATABASE_URL: postgresql://gabforge:secure_password_123@postgres:5432/gabforge
+      JWT_SECRET_KEY: your_secret_key_here_min_32_characters_change_this
+      JWT_ALGORITHM: HS256
+      JWT_EXPIRATION_HOURS: 1
+      JWT_REFRESH_EXPIRATION_DAYS: 7
+      BCRYPT_COST: 12
+      SMTP_HOST: smtp.gmail.com
+      SMTP_PORT: 587
+      SMTP_USER: your_email@gmail.com
+      SMTP_PASSWORD: your_app_password
+      SENDER_EMAIL: noreply@gabforge.com
+      APP_NAME: GabForge
+      DEBUG: "False"
+    ports:
+      - "8001:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./user_management:/app/user_management
+    networks:
+      - user_management_net
+    restart: unless-stopped
+
+  # Redis Cache (Optional, for session caching)
+  redis:
+    image: redis:7-alpine
+    container_name: user_management_cache
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - user_management_net
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+
+
+networks:
+  user_management_net:
+    driver: bridge
