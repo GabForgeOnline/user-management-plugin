@@ -136,7 +136,6 @@ This project is licensed under the MIT License - see the [LICENSE](./LICENSE) fi
 
 ## 💬 Support
 
-- **Email**: gabforge.online@gmail.com
 - **Issues**: [GitHub Issues](https://github.com/GabForgeOnline/user-management-plugin/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/GabForgeOnline/user-management-plugin/discussions)
 
