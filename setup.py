@@ -13,7 +13,7 @@ setup(
     name="user-management-plugin",
     version="1.0.0",
     author="GabForge Team",
-    author_email="team@gabforge.com",
+    author_email="team@gabforge.local",
     description="User Management plugin for GabForge - RBAC, authentication, and user lifecycle management",
     long_description=long_description,
     long_description_content_type="text/markdown",

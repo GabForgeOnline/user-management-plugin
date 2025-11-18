@@ -452,7 +452,7 @@ SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=your_email@gmail.com
 SMTP_PASSWORD=your_app_password
-SENDER_EMAIL=noreply@gabforge.com
+SENDER_EMAIL=noreply@yourdomain.com
 
 # Application
 APP_NAME=GabForge
@@ -544,7 +544,7 @@ This project is licensed under the MIT License - see the [LICENSE](./LICENSE) fi
 
 - **Issues**: [GitHub Issues](https://github.com/GabForgeOnline/user-management-plugin/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/GabForgeOnline/user-management-plugin/discussions)
-- **Email**: support@gabforge.com
+- **Email**: support@gabforge.local
 
 ## 🙏 Acknowledgments
 
