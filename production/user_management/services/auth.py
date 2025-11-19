@@ -1,20 +1,28 @@
 """
 auth.py - Authentication service for user_management plugin
-Purpose: Handle user authentication, registration, password reset
+Purpose: Handle user authentication, registration, password reset, JWT tokens
 Author: GabForge
 Version: 1.0.0
 """
 
 import logging
+import jwt
 from datetime import datetime, timedelta
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
-from plugins.user_management.models import User, UserSession, EmailVerificationToken, PasswordResetToken
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthCredentials
+
+from user_management.models import User, UserSession, EmailVerificationToken, PasswordResetToken
+from user_management.config import get_db, settings
 
 logger = logging.getLogger(__name__)
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# Security scheme for Bearer token
+security = HTTPBearer()
 
 
 class AuthService:
@@ -87,3 +95,122 @@ class AuthService:
         
         logger.info(f"✅ Password changed: {user.email}")
         return True
+    
+    @staticmethod
+    def create_access_token(user_id: int, expires_in_hours: int = None) -> str:
+        """Create JWT access token"""
+        if expires_in_hours is None:
+            expires_in_hours = settings.JWT_EXPIRATION_HOURS
+        
+        payload = {
+            "sub": str(user_id),
+            "type": "access",
+            "exp": datetime.utcnow() + timedelta(hours=expires_in_hours),
+            "iat": datetime.utcnow()
+        }
+        
+        token = jwt.encode(
+            payload,
+            settings.JWT_SECRET_KEY,
+            algorithm=settings.JWT_ALGORITHM
+        )
+        
+        return token
+    
+    @staticmethod
+    def create_refresh_token(user_id: int, expires_in_days: int = None) -> str:
+        """Create JWT refresh token"""
+        if expires_in_days is None:
+            expires_in_days = settings.JWT_REFRESH_EXPIRATION_DAYS
+        
+        payload = {
+            "sub": str(user_id),
+            "type": "refresh",
+            "exp": datetime.utcnow() + timedelta(days=expires_in_days),
+            "iat": datetime.utcnow()
+        }
+        
+        token = jwt.encode(
+            payload,
+            settings.JWT_SECRET_KEY,
+            algorithm=settings.JWT_ALGORITHM
+        )
+        
+        return token
+    
+    @staticmethod
+    def verify_access_token(token: str) -> int:
+        """Verify JWT access token and return user_id"""
+        try:
+            payload = jwt.decode(
+                token,
+                settings.JWT_SECRET_KEY,
+                algorithms=[settings.JWT_ALGORITHM]
+            )
+            
+            if payload.get("type") != "access":
+                logger.warning("❌ Invalid token type")
+                return None
+            
+            user_id = int(payload.get("sub"))
+            return user_id
+        except jwt.ExpiredSignatureError:
+            logger.warning("❌ Token expired")
+            return None
+        except jwt.InvalidTokenError:
+            logger.warning("❌ Invalid token")
+            return None
+    
+    @staticmethod
+    def verify_refresh_token(token: str) -> int:
+        """Verify JWT refresh token and return user_id"""
+        try:
+            payload = jwt.decode(
+                token,
+                settings.JWT_SECRET_KEY,
+                algorithms=[settings.JWT_ALGORITHM]
+            )
+            
+            if payload.get("type") != "refresh":
+                logger.warning("❌ Invalid token type")
+                return None
+            
+            user_id = int(payload.get("sub"))
+            return user_id
+        except jwt.ExpiredSignatureError:
+            logger.warning("❌ Refresh token expired")
+            return None
+        except jwt.InvalidTokenError:
+            logger.warning("❌ Invalid refresh token")
+            return None
+    
+    @staticmethod
+    async def get_current_user(
+        credentials: HTTPAuthCredentials = Depends(security),
+        db: Session = Depends(get_db)
+    ) -> User:
+        """Get current authenticated user from token"""
+        token = credentials.credentials
+        
+        user_id = AuthService.verify_access_token(token)
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid or expired token",
+                headers={"WWW-Authenticate": "Bearer"}
+            )
+        
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+        if not user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="User account is inactive"
+            )
+        
+        return user

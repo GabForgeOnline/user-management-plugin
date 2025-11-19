@@ -7,7 +7,7 @@ Version: 1.0.0
 
 import logging
 from sqlalchemy.orm import Session
-from plugins.user_management.models import User, Role, Permission
+from user_management.models import User, Role, Permission
 
 logger = logging.getLogger(__name__)
 

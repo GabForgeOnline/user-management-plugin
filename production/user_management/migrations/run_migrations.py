@@ -6,8 +6,8 @@ Version: 1.0.0
 """
 
 import logging
-from config.database import Base, engine
-from plugins.user_management.models import (
+from user_management.config import Base, engine
+from user_management.models import (
     User, Role, Permission, UserSession,
     UserActivityLog, UserPreferences,
     EmailVerificationToken, PasswordResetToken
